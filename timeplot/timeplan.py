@@ -26,9 +26,10 @@ def draw_timeplan(rule, labels=None, blank_color=0.9):
 	plt.setp(ax.get_xticklines(),visible=False)
 
 	#remove bottom and top small tick lines
-	for tick in ax.xaxis.get_minor_ticks():
-		tick.tick1line.set_markersize(0)
-		tick.tick2line.set_markersize(0)
+	# for tick in ax.xaxis.get_minor_ticks():
+	# 	tick.tick1line.set_markersize(0)
+	# 	tick.tick2line.set_markersize(0)
+	plt.tick_params(axis='x', which='both', bottom='off', top='off')
 
 	#Set only 7th minor tick label to visible
 	ax.set_yticklabels(labels)
@@ -56,8 +57,6 @@ def draw_timeplan(rule, labels=None, blank_color=0.9):
 	# recolour yticks in blank image color
 	[t.set_color(str(blank_color)) for t in ax.yaxis.get_ticklines()]
 
-	# fig.set_size_inches(4.3,1)
-	# fig.savefig("lala.pdf")
 
 def add_grey(cMap, blank_color):
 	cdict = {
