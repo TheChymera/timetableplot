@@ -56,8 +56,6 @@ def draw_timeplan(rule, labels=None, blank_color=0.9):
 	# recolour yticks in blank image color
 	[t.set_color(str(blank_color)) for t in ax.yaxis.get_ticklines()]
 
-
-	plt.show()
 	# fig.set_size_inches(4.3,1)
 	# fig.savefig("lala.pdf")
 
@@ -103,3 +101,4 @@ if __name__ == '__main__':
 	rule[1,14]=2
 	rule[2,15:42]=3
 	draw_timeplan(rule, labels)
+	plt.show()
