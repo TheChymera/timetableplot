@@ -3,26 +3,19 @@ import datetime
 import argh
 import json
 import sys
-from datetime import *
-
-from timeplan import add_grey
-import matplotlib.cm as cm
-
-from matplotlib.ticker import MultipleLocator, LinearLocator
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
-import matplotlib.ticker as ticker
-
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+from datetime import *
 
-import pandas as pd
-
-from sqlalchemy import create_engine, literal, or_, inspection
+from plotting import ttp_style, add_grey
 from os import path
+from sqlalchemy import create_engine, literal, or_, inspection
+from sqlalchemy.orm import sessionmaker, aliased
+
 sys.path.append('/home/chymera/src/labbookdb/db/')
 from common_classes import *
-from sqlalchemy.orm import sessionmaker, aliased
-import sqlalchemy
 
 allowed_classes = {
 	"Animal": Animal,
@@ -160,45 +153,7 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap
 		im = ax.pcolorfast(df_.T, cmap=add_grey(getattr(cm,saturate_cmap), 0.9), alpha=.5)
 		plt.hold(True)
 
-	#place and null major ticks (we still need them for the grid)
-	ax.xaxis.set_major_locator(LinearLocator(len(df_.index)+1))
-	ax.xaxis.set_major_formatter(ticker.NullFormatter())
-	ax.yaxis.set_major_locator(LinearLocator(len(df_.columns)+1))
-	ax.yaxis.set_major_formatter(ticker.NullFormatter())
-
-	#place and format minor ticks (used to substitute for centered major tick labels)
-	ax.xaxis.set_minor_locator(ticker.IndexLocator(1,0.5))
-	ax.xaxis.set_minor_formatter(ticker.FixedFormatter(df_.index))
-	ax.yaxis.set_minor_locator(ticker.IndexLocator(1,0.5))
-	ax.yaxis.set_minor_formatter(ticker.FixedFormatter(df_.columns))
-
-	#remove all major tick lines
-	# plt.setp(ax.get_xticklines(),visible=False)
-
-	#remove bottom and top small tick lines
-	plt.tick_params(axis='x', which='both', bottom='off', top='off', left='off', right='off')
-	plt.tick_params(axis='y', which='both', bottom='off', top='off', left='off', right='off')
-
-	#Set only 7th minor tick label to visible
-	for label in ax.xaxis.get_minorticklabels():
-		label.set_visible(False)
-	for label in ax.xaxis.get_minorticklabels()[::7]:
-		label.set_visible(True)
-	for label in ax.yaxis.get_minorticklabels():
-		label.set_visible(False)
-	for label in ax.yaxis.get_minorticklabels():
-		label.set_visible(True)
-
-	#Rotate ytick labels
-	plt.setp(ax.xaxis.get_minorticklabels(), rotation=90)
-
-	# create grid
-	ax.xaxis.grid(True, which='major', color='1', linestyle='-')
-	ax.yaxis.grid(True, which='major', color='1', linestyle='-')
-
-	#delete all spines
-	for spine in ["right", "left", "top", "bottom"]:
-		ax.spines[spine].set_visible(False)
+	ax = ttp_style(ax, df_)
 
 	plt.ylabel(" ".join(x_key.split("_")).replace("id","ID"))
 
