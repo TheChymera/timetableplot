@@ -20,7 +20,6 @@ import pandas as pd
 from sqlalchemy import create_engine, literal, or_, inspection
 from os import path
 sys.path.append('/home/chymera/src/labbookdb/db/')
-from query import get_related_id, instructions
 from common_classes import *
 from sqlalchemy.orm import sessionmaker, aliased
 import sqlalchemy
@@ -43,33 +42,6 @@ allowed_classes = {
 	"TreatmentProtocol":TreatmentProtocol,
 	}
 
-def simple_query(db_path, category, filters={}, mask=""):
-	session, engine = loadSession(db_path)
-	if isinstance(filters, list):
-		df_list = []
-		for subfilters in filters:
-			sql_query=session.query(allowed_classes[category])
-			for key in subfilters:
-				if key[-3:] == "_id" and not isinstance(subfilters[key], int):
-					try:
-						input_values = get_related_id(session, engine, subfilters[key])
-					except ValueError:
-						instructions("table_identifier")
-					for input_value in input_values:
-						input_value = int(input_value)
-						sql_query = sql_query.filter(getattr(allowed_classes[category], key)==input_value)
-				else:
-					sql_query = sql_query.filter(getattr(allowed_classes[category], key)==subfilters[key])
-			mystring = sql_query.statement
-			subdf = pd.read_sql_query(mystring,engine)
-			df_list.append(subdf)
-		mydf = pd.concat(df_list)
-	if mask:
-		mydf = mydf[mask]
-	print(mydf)
-	session.close()
-	engine.dispose()
-
 def loadSession(db_path):
 	db_path = "sqlite:///" + path.expanduser(db_path)
 	engine = create_engine(db_path, echo=False)
@@ -78,7 +50,7 @@ def loadSession(db_path):
 	Base.metadata.create_all(engine)
 	return session, engine
 
-def multi_plot(db_path, select, x_key, shade, saturate, padding=4):
+def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap="PuRd"):
 	"""Plotting tool
 
 	Mandatory Arguments:
@@ -86,6 +58,7 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4):
 	category -- main category to plot on x axis (must be a class from the db)
 	select -- list of lists which must be either 2 (for join) or 3 (for filter) elements long
 	padding -- number of entries to padd timeplan with
+	saturate_cmap -- string indicating the matplotlib cmap to use (http://matplotlib.org/examples/color/colormaps_reference.html)
 	"""
 
 	session, engine = loadSession(db_path)
@@ -184,7 +157,7 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4):
 				df_.set_value(active_dates, x_val, 1)
 		# print df_
 		# plt.pcolor(df_)
-		im = ax.pcolorfast(df_.T, cmap=cm.PuRd, alpha=.5)
+		im = ax.pcolorfast(df_.T, cmap=add_grey(getattr(cm,saturate_cmap), 0.9), alpha=.5)
 		plt.hold(True)
 
 	#place and null major ticks (we still need them for the grid)
@@ -270,11 +243,8 @@ def test(db_path):
 	engine.dispose()
 
 if __name__ == '__main__':
-	# argh.dispatch_command(add_generic)
 	select = [["Animal","treatments"],["FMRIMeasurement"],["TreatmentProtocol"],["Treatment","start_date","2015,11,11","2015,11,10"]]
 	shade = [{"TreatmentProtocol_code":["chrFlu","Treatment_start_date","Treatment_end_date"]},{"TreatmentProtocol_code":["acFlu","Treatment_start_date"]}]
 	multi_plot("~/meta.db", select, "Animal_id", shade=shade, saturate=["FMRIMeasurement_date"])
 	plt.show()
-	# simple_query("~/meta.db", "FMRIMeasurement", [{"animal_id":"Animal:id_eth.4011"},{"animal_id":"Animal:id_eth.4009"}])
-	# add_animal("~/animal.db", 4011, 4, "f", "2L", id_uzh="M2760", cage_uzh="570971")
 	# test("~/meta.db")
