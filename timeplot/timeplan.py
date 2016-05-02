@@ -1,9 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.cm as cm
-from matplotlib.ticker import MultipleLocator, LinearLocator
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import matplotlib.ticker as ticker
+from plotting import add_grey
 
 def draw_timeplan(rule, labels=None, blank_color=0.9):
 	duration = np.shape(rule)[1]
@@ -15,7 +14,7 @@ def draw_timeplan(rule, labels=None, blank_color=0.9):
 	im = ax.pcolorfast(rule, cmap=cMap)
 
 	#place and null major ticks (we still need them for the grid)
-	ax.xaxis.set_major_locator(LinearLocator(duration+1))
+	ax.xaxis.set_major_locator(ticker.LinearLocator(duration+1))
 	ax.xaxis.set_major_formatter(ticker.NullFormatter())
 
 	#place and format minor ticks (used to substitute for centered major tick labels)
@@ -56,40 +55,6 @@ def draw_timeplan(rule, labels=None, blank_color=0.9):
 
 	# recolour yticks in blank image color
 	[t.set_color(str(blank_color)) for t in ax.yaxis.get_ticklines()]
-
-
-def add_grey(cMap, blank_color):
-	cdict = {
-		'red': [],
-		'green': [],
-		'blue': [],
-		'alpha': []
-	}
-
-	# regular index to compute the colors
-	reg_index = np.linspace(0, 1, 254)
-
-	# shifted index to match the data
-	shift_index = np.linspace(0, 1, 256)
-
-	grey_count=0
-	grey_shades=2
-	for ix, si in enumerate(shift_index):
-		grey_count +=1
-		if grey_count <= grey_shades:
-			cdict['red'].append((si, blank_color, blank_color))
-			cdict['green'].append((si, blank_color, blank_color))
-			cdict['blue'].append((si, blank_color, blank_color))
-			cdict['alpha'].append((si, 1, 1))
-		else:
-			ri = reg_index[ix-grey_shades]
-			r, g, b, a = cMap(ri)
-			cdict['red'].append((si, r, r))
-			cdict['green'].append((si, g, g))
-			cdict['blue'].append((si, b, b))
-			cdict['alpha'].append((si, a, a))
-
-	return LinearSegmentedColormap("name", cdict)
 
 if __name__ == '__main__':
 	labels = ["fMRI","iv Flu.","ip Flu."]
