@@ -14,7 +14,7 @@ from os import path
 from sqlalchemy import create_engine, literal, or_, inspection
 from sqlalchemy.orm import sessionmaker, aliased
 
-sys.path.append('/home/chymera/src/labbookdb/db/')
+sys.path.append('/home/chymera/src/LabbookDB/db/')
 from common_classes import *
 
 allowed_classes = {
@@ -123,8 +123,6 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap
 						df_.set_value(active_dates, x_val, 1)
 					else:
 						df_.set_value(start, x_val, 1)
-		print df_
-		# plt.pcolor(df_)
 		im = ax.pcolorfast(df_.T, cmap=add_grey(cm.gray_r, 0.8), alpha=.5)
 		plt.hold(True)
 
@@ -148,8 +146,6 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap
 				filtered_df = reference_df[reference_df[x_key] == x_val]
 				active_dates = list(set(filtered_df[entry]))
 				df_.set_value(active_dates, x_val, 1)
-		# print df_
-		# plt.pcolor(df_)
 		im = ax.pcolorfast(df_.T, cmap=add_grey(getattr(cm,saturate_cmap), 0.9), alpha=.5)
 		plt.hold(True)
 
@@ -199,7 +195,7 @@ def test(db_path):
 
 if __name__ == '__main__':
 	select = [["Animal","treatments"],["FMRIMeasurement"],["TreatmentProtocol"],["Treatment","start_date","2015,11,11","2015,11,10"]]
-	shade = [{"TreatmentProtocol_code":["chrFlu","Treatment_start_date","Treatment_end_date"]},{"TreatmentProtocol_code":["acFlu","Treatment_start_date"]}]
-	multi_plot("~/meta.db", select, "Animal_id", shade=shade, saturate=["FMRIMeasurement_date"])
+	shade = [{"TreatmentProtocol_code":["cFluIP","Treatment_start_date","Treatment_end_date"]},{"TreatmentProtocol_code":["aFluIV","Treatment_start_date"]}]
+	multi_plot("~/syncdata/meta.db", select, "Animal_id", shade=shade, saturate=["FMRIMeasurement_date"])
 	plt.show()
 	# test("~/meta.db")
