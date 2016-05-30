@@ -43,7 +43,7 @@ def loadSession(db_path):
 	Base.metadata.create_all(engine)
 	return session, engine
 
-def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap="PuRd"):
+def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap="Pastel1_r"):
 	"""Plotting tool
 
 	Mandatory Arguments:
@@ -86,10 +86,12 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap
 
 	mystring = sql_query.statement
 	reference_df = pd.read_sql_query(mystring,engine)
+	reference_df = reference_df.dropna(axis="columns", how="all") #remove empty columns
 
 	#truncate dates
 	for col in reference_df.columns:
 		if "date" in col:
+			# print(reference_df[col])
 			reference_df[col] = reference_df[col].apply(lambda x: x.date())
 
 
@@ -110,44 +112,60 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap
 	fig, ax = plt.subplots(figsize=df.shape , facecolor='#eeeeee', tight_layout=True)
 
 	#populate frames
-	for entry in shade:
-		df_ = df.copy(deep=True)
+	df_ = df.copy(deep=True)
+	for c_step, entry in enumerate(shade):
 		for x_val in x_vals:
 			if isinstance(entry, dict):
 				for key in entry:
 					filtered_df = reference_df[(reference_df[key] == entry[key][0])&(reference_df[x_key] == x_val)]
-					start = list(set(filtered_df[entry[key][1]]))[0]
+					try:
+						start = list(set(filtered_df[entry[key][1]]))[0]
+					except IndexError:
+						pass
 					if len(entry[key]) == 3:
 						end = list(set(filtered_df[entry[key][2]]))[0]
 						active_dates = [i for i in perdelta(start,end+timedelta(days=1),timedelta(days=1))]
-						df_.set_value(active_dates, x_val, 1)
-					else:
-						df_.set_value(start, x_val, 1)
-		im = ax.pcolorfast(df_.T, cmap=add_grey(cm.gray_r, 0.8), alpha=.5)
-		plt.hold(True)
+						for active_date in active_dates:
+							df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step+1)
+					elif start:
+						df_.set_value(start, x_val, df_.get_value(start, x_val)+c_step+1)
+					# we need this to make sure start does not remain set for the next iteration:
+					start=False
+			elif isinstance(entry, str):
+				filtered_df = reference_df[reference_df[x_key] == x_val]
+				active_dates = list(set(filtered_df[entry]))
+				for active_date in active_dates:
+					df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step+1)
+	im = ax.pcolorfast(df_.T, cmap=add_grey(cm.gray_r, 0.8), alpha=.5)
+	plt.hold(True)
 
 	#populate frames
-	for entry in saturate:
-		df_ = df.copy(deep=True)
+	df_ = df.copy(deep=True)
+	for c_step, entry in enumerate(saturate):
 		for x_val in x_vals:
 			if isinstance(entry, dict):
 				for key in entry:
 					filtered_df = reference_df[(reference_df[key] == entry[key][0])&(reference_df[x_key] == x_val)]
-					start = list(set(filtered_df[entry[key][1]]))[0]
-					print start
+					try:
+						start = list(set(filtered_df[entry[key][1]]))[0]
+					except IndexError:
+						pass
 					if len(entry[key]) == 3:
 						end = list(set(filtered_df[entry[key][2]]))[0]
-						active_dates = [i for i in perdelta(start,end,timedelta(days=1))]
-						df_.set_value(active_dates, x_val, 5)
-						print end
-					else:
-						df_.set_value(start, x_val, 1)
+						active_dates = [i for i in perdelta(start,end+timedelta(days=1),timedelta(days=1))]
+						for active_date in active_dates:
+							df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step+1)
+					elif start:
+						df_.set_value(start, x_val, df_.get_value(start, x_val)+c_step+1)
+					# we need this to make sure start does not remain set for the next iteration:
+					start=False
 			elif isinstance(entry, str):
 				filtered_df = reference_df[reference_df[x_key] == x_val]
 				active_dates = list(set(filtered_df[entry]))
 				df_.set_value(active_dates, x_val, 1)
-		im = ax.pcolorfast(df_.T, cmap=add_grey(getattr(cm,saturate_cmap), 0.9), alpha=.5)
-		plt.hold(True)
+	# print(df_[20:])
+	im = ax.pcolorfast(df_.T, cmap=add_grey(getattr(cm,saturate_cmap), 0.9), alpha=.5)
+	plt.hold(True)
 
 	ax = ttp_style(ax, df_)
 
@@ -194,8 +212,12 @@ def test(db_path):
 	engine.dispose()
 
 if __name__ == '__main__':
-	select = [["Animal","treatments"],["FMRIMeasurement"],["TreatmentProtocol"],["Treatment","start_date","2015,11,11","2015,11,10"]]
-	shade = [{"TreatmentProtocol_code":["cFluIP","Treatment_start_date","Treatment_end_date"]},{"TreatmentProtocol_code":["aFluIV","Treatment_start_date"]}]
-	multi_plot("~/syncdata/meta.db", select, "Animal_id", shade=shade, saturate=["FMRIMeasurement_date"])
+	select = [["Animal","treatments"],["FMRIMeasurement"],["TreatmentProtocol"],["Treatment","start_date","2016,4,25","2016,4,25,19,30"]]
+	saturate = [
+		{"TreatmentProtocol_code":["cFluDW","Treatment_start_date","Treatment_end_date"]},
+		{"TreatmentProtocol_code":["aFluIV","Treatment_start_date"]},
+		{"TreatmentProtocol_code":["aFluSC","Treatment_start_date"]}
+		]
+	multi_plot("~/syncdata/meta.db", select, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate)
 	plt.show()
 	# test("~/meta.db")
