@@ -117,6 +117,7 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap
 		for x_val in x_vals:
 			if isinstance(entry, dict):
 				for key in entry:
+					start=False #unless the code below is succesful, no attempt is made to add an entry for the x_val
 					filtered_df = reference_df[(reference_df[key] == entry[key][0])&(reference_df[x_key] == x_val)]
 					try:
 						start = list(set(filtered_df[entry[key][1]]))[0]
@@ -129,8 +130,6 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap
 							df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step+1)
 					elif start:
 						df_.set_value(start, x_val, df_.get_value(start, x_val)+c_step+1)
-					# we need this to make sure start does not remain set for the next iteration:
-					start=False
 			elif isinstance(entry, str):
 				filtered_df = reference_df[reference_df[x_key] == x_val]
 				active_dates = list(set(filtered_df[entry]))
