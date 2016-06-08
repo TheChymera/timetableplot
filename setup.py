@@ -10,5 +10,5 @@ setup(
 	keywords = ["plot", "schedule", "time", "timetable"],
 	packages = find_packages("."),
 	install_requires = [],
-	provides = ["timeplot"],
+	provides = ["ttp"],
 	)
