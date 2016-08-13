@@ -16,32 +16,7 @@ from sqlalchemy.orm import sessionmaker, aliased
 
 sys.path.append('/home/chymera/src/LabbookDB/db/')
 from common_classes import *
-
-allowed_classes = {
-	"Animal": Animal,
-	"Cage": Cage,
-	"DNAExtractionProtocol": DNAExtractionProtocol,
-	"FMRIMeasurement": FMRIMeasurement,
-	"FMRIScannerSetup": FMRIScannerSetup,
-	"FMRIAnimalPreparationProtocol": FMRIAnimalPreparationProtocol,
-	"HandlingHabituationProtocol": HandlingHabituationProtocol,
-	"Ingredient": Ingredient,
-	"Incubation": Incubation,
-	"MeasurementUnit": MeasurementUnit,
-	"Operator": Operator,
-	"Substance": Substance,
-	"Solution": Solution,
-	"Treatment":Treatment,
-	"TreatmentProtocol":TreatmentProtocol,
-	}
-
-def loadSession(db_path):
-	db_path = "sqlite:///" + path.expanduser(db_path)
-	engine = create_engine(db_path, echo=False)
-	Session = sessionmaker(bind=engine)
-	session = Session()
-	Base.metadata.create_all(engine)
-	return session, engine
+from query import loadSession, allowed_classes
 
 def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap="Pastel1_r"):
 	"""Plotting tool
@@ -91,8 +66,11 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap
 	#truncate dates
 	for col in reference_df.columns:
 		if "date" in col:
-			# print(reference_df[col])
-			reference_df[col] = reference_df[col].apply(lambda x: x.date())
+			#the following catches None entries:
+			try:
+				reference_df[col] = reference_df[col].apply(lambda x: x.date())
+			except AttributeError:
+				pass
 
 
 	#GET FIRST AND LAST DATE
