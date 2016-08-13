@@ -14,7 +14,7 @@ from os import path
 from sqlalchemy import create_engine, literal, or_, inspection
 from sqlalchemy.orm import sessionmaker, aliased
 
-sys.path.append('/home/chymera/src/LabbookDB/db/')
+sys.path.append(path.expanduser('~/src/LabbookDB/db/'))
 from common_classes import *
 from query import loadSession, allowed_classes
 
