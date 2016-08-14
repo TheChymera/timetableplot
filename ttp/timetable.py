@@ -11,6 +11,7 @@ from datetime import *
 
 from plotting import ttp_style, add_grey
 from os import path
+import sqlalchemy
 from sqlalchemy import create_engine, literal, or_, inspection
 from sqlalchemy.orm import sessionmaker, aliased
 
@@ -18,7 +19,7 @@ sys.path.append(path.expanduser('~/src/LabbookDB/db/'))
 from common_classes import *
 from query import loadSession, allowed_classes
 
-def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap="Pastel1_r"):
+def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap="Pastel1_r", baseclass=None):
 	"""Plotting tool
 
 	Mandatory Arguments:
@@ -34,33 +35,45 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap
 	cols=[]
 	joins=[]
 	filters=[]
-	for i in select:
+	for i in [[baseclass]] + select:
 		for col_name, col in inspection.inspect(allowed_classes[i[0]]).columns.items():
 			aliased_col = getattr(allowed_classes[i[0]], col.key)
 			cols.append(aliased_col.label("{}_{}".format(i[0], col_name)))
-		if 0 < len(i) <= 2:
+		if  i != [baseclass]:
 			joins.append(i)
-		elif 2 < len(i):
-			filters.append(i)
 
-	sql_query = session.query(*cols)
+	baseclassobject = allowed_classes[baseclass]
+	sql_query = session.query(*cols).select_from(baseclassobject)
+	print [i.name for i in cols]
+	print joins
 	for join in joins:
+		joinclassobject = allowed_classes[join[0]]
 		if len(join) == 1:
-			sql_query = sql_query.join(allowed_classes[join[0]])
-		else:
-			sql_query = sql_query.join(getattr(allowed_classes[join[0]], join[1]))
+			sql_query = sql_query.outerjoin(joinclassobject)
+		elif len(join) == 2:
+			# alias = aliased(allowed_classes[join[0]],join[0])
+			# sql_query = sql_query.outerjoin((alias, getattr(allowed_classes[join[0]], join[1])))
+			sql_query = sql_query.join((joinclassobject,getattr(baseclassobject, join[1])))
+		elif len(join) == 3:
+			parentclassobject = allowed_classes[join[2]]
+			sql_query = sql_query.join((joinclassobject,getattr(parentclassobject, join[1])))
 
-	for sub_filter in filters:
-		if sub_filter[1][-4:] == "date" and isinstance(sub_filter[2], str):
-			for ix, i in enumerate(sub_filter[2:]):
-				sub_filter[2+ix] = datetime(*[int(a) for a in i.split(",")])
-		if len(i) == 3:
-			sql_query = sql_query.filter(getattr(allowed_classes[sub_filter[0]], sub_filter[1]) == sub_filter[2])
-		else:
-			sql_query = sql_query.filter(or_(getattr(allowed_classes[sub_filter[0]], sub_filter[1]) == v for v in sub_filter[2:]))
+
+	# for sub_filter in filters:
+	# 	if sub_filter[1][-4:] == "date" and isinstance(sub_filter[2], str):
+	# 		for ix, i in enumerate(sub_filter[2:]):
+	# 			sub_filter[2+ix] = datetime(*[int(a) for a in i.split(",")])
+	# 	if len(i) == 3:
+	# 		sql_query = sql_query.filter(getattr(allowed_classes[sub_filter[0]], sub_filter[1]) == sub_filter[2])
+	# 	else:
+	# 		sql_query = sql_query.filter(or_(getattr(allowed_classes[sub_filter[0]], sub_filter[1]) == v for v in sub_filter[2:]))
 
 	mystring = sql_query.statement
 	reference_df = pd.read_sql_query(mystring,engine)
+	print reference_df.index
+	print reference_df.columns
+	print set(reference_df["CageStay_id"])
+	print set(reference_df[u'CageStay_start_date'])
 	reference_df = reference_df.dropna(axis="columns", how="all") #remove empty columns
 
 	#truncate dates
@@ -189,12 +202,18 @@ def test(db_path):
 	engine.dispose()
 
 if __name__ == '__main__':
-	select = [["Animal","treatments"],["FMRIMeasurement"],["TreatmentProtocol"],["Treatment","start_date","2016,4,25","2016,4,25,19,30"]]
+	# select = [["Animal","treatments"],["FMRIMeasurement"],["TreatmentProtocol"]]
+	# select = [["Cage"],["FMRIMeasurement"],["TreatmentProtocol"],["Treatment","start_date","2016,4,25","2016,4,25,19,30"]]
+	# select = [["Treatment","treatments"],["FMRIMeasurement"],["TreatmentProtocol"],["CageStay","cage_stays"],["Cage","cage","CageStay"],["Treatment","treatments","Cage"]]
+	select = [["Treatment","treatments"],["FMRIMeasurement"],["TreatmentProtocol"],["CageStay","cage_stays"],["Cage","cage","CageStay"]]
+	baseclass = "Animal"
+	# select = [["Animal","treatments"],["FMRIMeasurement"],["TreatmentProtocol"],["Cage"],["Treatment","start_date","2016,4,25","2016,4,25,19,30"]]
+	# select = [["Animal","treatments"],["FMRIMeasurement"],["TreatmentProtocol"],["Cage","treatments"],["Treatment","start_date","2016,4,25","2016,4,25,19,30"]]
 	saturate = [
 		{"TreatmentProtocol_code":["cFluDW","Treatment_start_date","Treatment_end_date"]},
 		{"TreatmentProtocol_code":["aFluIV","Treatment_start_date"]},
 		{"TreatmentProtocol_code":["aFluSC","Treatment_start_date"]}
 		]
-	multi_plot("~/syncdata/meta.db", select, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate)
+	multi_plot("~/syncdata/meta.db", select, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate, baseclass=baseclass)
 	plt.show()
 	# test("~/meta.db")
