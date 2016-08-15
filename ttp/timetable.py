@@ -1,6 +1,5 @@
 #!/usr/bin/python
 import argh
-import json
 import sys
 import pandas as pd
 import numpy as np
@@ -34,7 +33,6 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="P
 			except AttributeError:
 				pass
 
-
 	#GET FIRST AND LAST DATE
 	dates = get_dates(reference_df, [shade, saturate])
 	if not window_start:
@@ -45,9 +43,6 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="P
 		window_end = max(dates) + timedelta(days=padding)
 	else:
 		window_end = datetime.strptime(window_end, "%Y,%m,%d").date()
-
-	# window_start = min(dates) - timedelta(days=padding)
-	# window_end = max(dates) + timedelta(days=padding)
 
 	#create generic plotting dataframe
 	x_vals = list(set(reference_df[x_key]))
@@ -116,7 +111,6 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="P
 				filtered_df = reference_df[reference_df[x_key] == x_val]
 				active_dates = list(set(filtered_df[entry]))
 				df_.set_value(active_dates, x_val, 1)
-	# print(df_[20:])
 	im = ax.pcolorfast(df_.T, cmap=add_grey(getattr(cm,saturate_cmap), 0.9), alpha=.5)
 	plt.hold(True)
 
