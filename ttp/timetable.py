@@ -19,25 +19,25 @@ sys.path.append(path.expanduser('~/src/LabbookDB/db/'))
 from common_classes import *
 from query import loadSession, allowed_classes
 
-def tryme(joins, cols, expression):
-	joinclassobject = allowed_classes[expression[0]]
-	if isinstance(expression[2],list):
-		joins,cols,parentclassobject_,joinclassobject_,alias_,aliased_col_ = tryme(joins, cols, expression[2])
-		parentclassobject = alias_
-		rootclassname = expression[2][2]
-		joinclassobject_name = rootclassname+"_"+expression[0]
-	else:
-		parentclassobject = allowed_classes[expression[2]]
-		joinclassobject_name = expression[0]
-		rootclassname = expression[2]
-	alias = aliased(joinclassobject, name=joinclassobject_name)
-	joins.append((alias,getattr(parentclassobject, expression[1])))
-	for col_name, col in inspection.inspect(joinclassobject).columns.items():
-		aliased_col = getattr(joinclassobject, col.key)
-		cols.append(aliased_col.label("{}_{}_{}".format(rootclassname,expression[0],col_name)))
-	return joins,cols,parentclassobject,joinclassobject,alias,aliased_col
+# def tryme(joins, cols, expression):
+# 	joinclassobject = allowed_classes[expression[0]]
+# 	if isinstance(expression[2],list):
+# 		joins,cols,parentclassobject_,joinclassobject_,alias_,aliased_col_ = tryme(joins, cols, expression[2])
+# 		parentclassobject = alias_
+# 		rootclassname = expression[2][2]
+# 		joinclassobject_name = rootclassname+"_"+expression[0]
+# 	else:
+# 		parentclassobject = allowed_classes[expression[2]]
+# 		joinclassobject_name = expression[0]
+# 		rootclassname = expression[2]
+# 	alias = aliased(joinclassobject, name=joinclassobject_name)
+# 	joins.append((alias,getattr(parentclassobject, expression[1])))
+# 	for col_name, col in inspection.inspect(joinclassobject).columns.items():
+# 		aliased_col = getattr(joinclassobject, col.key)
+# 		cols.append(aliased_col.label("{}_{}_{}".format(rootclassname,expression[0],col_name)))
+# 	return joins,cols,parentclassobject,joinclassobject,alias,aliased_col
 
-def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap="Pastel1_r", baseclass="", filters=[]):
+def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="Pastel1_r"):
 	"""Plotting tool
 
 	Mandatory Arguments:
@@ -47,52 +47,6 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap
 	padding -- number of entries to padd timeplan with
 	saturate_cmap -- string indicating the matplotlib cmap to use (http://matplotlib.org/examples/color/colormaps_reference.html)
 	"""
-
-	session, engine = loadSession(db_path)
-
-	cols=[]
-	joins=[]
-	baseclassobject = allowed_classes[baseclass]
-	for i in [[baseclass]] + select:
-		joinclassobject = allowed_classes[i[0]]
-		if  i == [baseclass] or len(i) <3:
-			for col_name, col in inspection.inspect(joinclassobject).columns.items():
-				aliased_col = getattr(joinclassobject, col.key)
-				cols.append(aliased_col.label("{}_{}".format(i[0], col_name)))
-		if i != [baseclass]:
-			if len(i) == 1:
-				joins.append((joinclassobject,))
-			elif len(i) == 2:
-				joins.append((joinclassobject,getattr(baseclassobject, i[1])))
-			elif len(i) == 3:
-				joins,cols,_,_,_,_ = tryme(joins,cols,i)
-
-
-
-	sql_query = session.query(*cols).select_from(baseclassobject)
-	for join in joins:
-		sql_query = sql_query.outerjoin(*join)
-	# sql_query = sql_query.outerjoin(TreatmentProtocol, aliased=True)
-
-	for sub_filter in filters:
-		if sub_filter[1][-4:] == "date" and isinstance(sub_filter[2], str):
-			for ix, i in enumerate(sub_filter[2:]):
-				sub_filter[2+ix] = datetime(*[int(a) for a in i.split(",")])
-		if len(i) == 3:
-			sql_query = sql_query.filter(getattr(allowed_classes[sub_filter[0]], sub_filter[1]) == sub_filter[2])
-		else:
-			sql_query = sql_query.filter(or_(getattr(allowed_classes[sub_filter[0]], sub_filter[1]) == v for v in sub_filter[2:]))
-
-	mystring = sql_query.statement
-	reference_df = pd.read_sql_query(mystring,engine)
-	# print reference_df.index
-	print reference_df.columns
-	# print set(reference_df[u'Cage_Treatment_end_date'])
-	# return
-	# print set(reference_df[u'CageStay_start_date'])
-	# print reference_df[reference_df["Cage_id"] == 18]
-	# return
-	reference_df = reference_df.dropna(axis="columns", how="all") #remove empty columns
 
 	#truncate dates
 	for col in reference_df.columns:
@@ -119,18 +73,6 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap
 	#set plotting params
 	cMap = add_grey(cm.viridis, 0.9)
 	fig, ax = plt.subplots(figsize=df.shape , facecolor='#eeeeee', tight_layout=True)
-
-	# print set(reference_df["Cage_Treatment_start_date"])
-	# print set(reference_df["Cage_Treatment_end_date"])
-	print set(reference_df["Treatment_start_date"])
-	print set(reference_df["Treatment_end_date"])
-	print set(reference_df["Treatment_id"])
-	# print set(reference_df["Cage_Treatment_id"])
-	print set(reference_df["CageStay_Cage_id"])
-	print set(reference_df["TreatmentProtocol_code"])
-	print set(reference_df["Cage_TreatmentProtocol_code"])
-
-	return
 
 	#populate frames
 	df_ = df.copy(deep=True)
@@ -166,19 +108,12 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap
 			if isinstance(entry, dict):
 				for key in entry:
 					filtered_df = reference_df[(reference_df[key] == entry[key][0])&(reference_df[x_key] == x_val)]
-					print filtered_df.columns
-					return
-					print entry[key][0]
 					try:
-						print list(set(filtered_df[entry[key][1]]))[0]
 						start = list(set(filtered_df[entry[key][1]]))[0]
 					except IndexError:
-						print "BLANK_________________"
 						pass
 					if len(entry[key]) == 3:
-						print entry[key][2]
 						end = list(set(filtered_df[entry[key][2]]))[0]
-						print end
 						active_dates = [i for i in perdelta(start,end+timedelta(days=1),timedelta(days=1))]
 						for active_date in active_dates:
 							df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step+1)
@@ -197,9 +132,6 @@ def multi_plot(db_path, select, x_key, shade, saturate, padding=4, saturate_cmap
 	ax = ttp_style(ax, df_)
 
 	plt.ylabel(" ".join(x_key.split("_")).replace("id","ID"))
-
-	session.close()
-	engine.dispose()
 
 def perdelta(start, end, delta):
 	curr = start
@@ -220,23 +152,6 @@ def get_dates(df, parameters):
 					for col in entry[key][1:]:
 						dates.extend(list(set(filtered_df[col])))
 	return list(set(dates))
-
-def test(db_path):
-	session, engine = loadSession(db_path)
-
-	cols=[]
-	for category in ["Animal","Treatment","FMRIMeasurement"]:
-		for col_name, col in inspection.inspect(allowed_classes[category]).columns.items():
-			aliased_col = getattr(allowed_classes[category], col.key)
-			cols.append(aliased_col.label("{}_{}".format(category, col_name)))
-
-	sql_query = session.query(*cols).join(Animal.treatments).join(FMRIMeasurement).filter(or_(Treatment.start_date == v for v in [datetime(2015,11,10),datetime(2015,11,11)]))
-	mystring = sql_query.statement
-	mydf = pd.read_sql_query(mystring,engine)
-	# print(mydf)
-	# print(set(mydf[(mydf["Animal_id"]==1) & (mydf["FMRIMeasurement_preparation_id"] == 11)]["FMRIMeasurement_date"]))
-	session.close()
-	engine.dispose()
 
 def add_all_columns(cols, class_name):
 	joinclassobject = allowed_classes[class_name]
@@ -293,11 +208,11 @@ def get_referece_df(db_path, col_entries=[], join_entries=[], filters=[]):
 			sql_query = sql_query.filter(or_(getattr(allowed_classes[sub_filter[0]], sub_filter[1]) == v for v in sub_filter[2:]))
 
 	mystring = sql_query.statement
-	reference_df = pd.read_sql_query(mystring,engine)
+	df = pd.read_sql_query(mystring,engine)
 	session.close()
 	engine.dispose()
 
-	return reference_df
+	return df
 
 	#THIS IS KEPT TO REMEMBER WHENCE THE ABOVE AWKWARD ROUTINES CAME AND HOW THE CODE IS SUPPOSED TO LOOK IF TYPED OUT
 	# CageTreatment = aliased(Treatment)
@@ -322,34 +237,18 @@ def get_referece_df(db_path, col_entries=[], join_entries=[], filters=[]):
 	# print reference_df
 
 if __name__ == '__main__':
-	# select = [["Animal","treatments"],["FMRIMeasurement"],["TreatmentProtocol"]]
-	# select = [["Cage"],["FMRIMeasurement"],["TreatmentProtocol"],["Treatment","start_date","2016,4,25","2016,4,25,19,30"]]
-	select = [
-		["Treatment","treatments"],
-		["TreatmentProtocol"],
-		["FMRIMeasurement"],
-		["CageStay","cage_stays"],
-		["Cage","cage","CageStay"],
-		["TreatmentProtocol","protocol",["Treatment","treatments","Cage"]],
-		# ["TreatmentProtocol","protocol","Treatment"],
-		]
-	filters = [["Treatment","start_date","2016,4,25"]]
-	# filters = [["Treatment","start_date","2016,4,25","2016,4,25,19,30"]]
-	# select = [["Treatment","treatments"],["FMRIMeasurement"],["TreatmentProtocol"],["CageStay","cage_stays"],["Cage","cage","CageStay"]]
-	baseclass = "Animal"
-	# select = [["Animal","treatments"],["FMRIMeasurement"],["TreatmentProtocol"],["Cage"],["Treatment","start_date","2016,4,25","2016,4,25,19,30"]]
-	# select = [["Animal","treatments"],["FMRIMeasurement"],["TreatmentProtocol"],["Cage","treatments"],["Treatment","start_date","2016,4,25","2016,4,25,19,30"]]
 	saturate = [
-		{"TreatmentProtocol_code":["cFluDW","Treatment_start_date","Treatment_end_date"]},
+		{"Cage_TreatmentProtocol_code":["cFluDW","Cage_Treatment_start_date","Cage_Treatment_end_date"]},
 		# {"Treatment_TreatmentProtocol_code":["cFluDW","Cage_Treatment_start_date","Cage_Treatment_end_date"]},
 		{"TreatmentProtocol_code":["aFluIV","Treatment_start_date"]},
 		{"TreatmentProtocol_code":["aFluSC","Treatment_start_date"]}
 		]
-	# multi_plot("~/syncdata/meta.db", select, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate, baseclass=baseclass, filters=filters)
-	# plt.show()
 
 	col_entries=[("Animal","id"),("Treatment",),("FMRIMeasurement",),("TreatmentProtocol","code"),("Cage","id"),("Cage","Treatment",""),("Cage","TreatmentProtocol","code")]
 	join_entries=[("Animal.treatments",),("FMRIMeasurement",),("Treatment.protocol",),("Animal.cage_stays",),("CageStay.cage",),("Cage_Treatment","Cage.treatments"),("Cage_TreatmentProtocol","Cage_Treatment.protocol")]
-	filers = [["Cage_Treatment","start_date","2016,4,25"]]
-	get_referece_df("~/syncdata/meta.db",col_entries=col_entries, join_entries=join_entries, filters=filters)
-	# test("~/meta.db")
+	filters = [["Cage_Treatment","start_date","2016,4,25,19,30"]]
+	reference_df = get_referece_df("~/syncdata/meta.db",col_entries=col_entries, join_entries=join_entries, filters=filters)
+	# print reference_df.columns
+
+	multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate)
+	plt.show()
