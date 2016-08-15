@@ -237,44 +237,89 @@ def test(db_path):
 	# print(set(mydf[(mydf["Animal_id"]==1) & (mydf["FMRIMeasurement_preparation_id"] == 11)]["FMRIMeasurement_date"]))
 	session.close()
 	engine.dispose()
-def newtest(db_path):
+
+def add_all_columns(cols, class_name):
+	joinclassobject = allowed_classes[class_name]
+
+	#we need to catch this esception, because for aliased classes a mapper is not directly returned
+	try:
+		col_name_cols = inspection.inspect(joinclassobject).columns.items()
+	except AttributeError:
+		col_name_cols = inspection.inspect(joinclassobject).mapper.columns.items()
+
+	for col_name, col in col_name_cols:
+		column = getattr(joinclassobject, col.key)
+		cols.append(column.label("{}_{}".format(class_name, col_name)))
+
+def get_referece_df(db_path, col_entries=[], join_entries=[], filters=[]):
 	session, engine = loadSession(db_path)
 
-	# sql_query = session.query(Animal.id.label("Animal_id")).select_from(Animal)
-	CageTreatment = aliased(Treatment)
-	CageTreatmentProtocol = aliased(TreatmentProtocol)
-	sql_query = session.query(
-							Animal.id.label("Animal_id"),
-							Treatment.id.label("Treatment_id"),
-							TreatmentProtocol.code.label("TreatmentProtocol_code"),
-							CageStay.id.label("CageStay_id"),
-							Cage.id.label("Cage_id"),
-							CageTreatment.id.label("CageTreatment_id"),
-							CageTreatmentProtocol.code.label("CageTreatmentProtocol_code"),
-							)\
-					.join(Animal.treatments)\
-					.outerjoin(Treatment.protocol)\
-					.join(Animal.cage_stays)\
-					.join(Cage)\
-					.join(CageTreatment, Cage.treatments)\
-					.join(CageTreatmentProtocol, CageTreatment.protocol)\
-					.filter(Animal.id == 43)
-					# .join(Cagetreatments)\
-					# .outerjoin(CageTreatment)\
-					# .outerjoin(Cage.treatments)\
-	# sql_query = session.query(Animal.id.label("Animal_id")).select_from(Animal).filter(Animal.id == 1)
-	# sql_query = session.query(Animal).filter(Animal.id == 1)
+	cols=[]
+	for col_entry in col_entries:
+		if len(col_entry) == 1:
+			add_all_columns(cols, col_entry[0])
+		if len(col_entry) == 2:
+			cols.append(getattr(allowed_classes[col_entry[0]],col_entry[1]).label("{}_{}".format(*col_entry)))
+		if len(col_entry) == 3:
+			aliased_class = aliased(allowed_classes[col_entry[1]])
+			allowed_classes[col_entry[0]+"_"+col_entry[1]] = aliased_class
+			if col_entry[2] == "":
+				add_all_columns(cols, col_entry[0]+"_"+col_entry[1])
+			else:
+				cols.append(getattr(aliased_class,col_entry[2]).label("{}_{}_{}".format(*col_entry)))
+
+	joins=[]
+	for join_entry in join_entries:
+		join_parameters = []
+		for join_entry_substring in join_entry:
+			if "." in join_entry_substring:
+				class_name, table_name = join_entry_substring.split(".") #if this unpacks >2 values, the user specified strings are malformed
+				join_parameters.append(getattr(allowed_classes[class_name],table_name))
+			else:
+				join_parameters.append(allowed_classes[join_entry_substring])
+		joins.append(join_parameters)
+
+	sql_query = session.query(*cols)
+	for join in joins:
+		sql_query = sql_query.join(*join)
+
+	for sub_filter in filters:
+		if sub_filter[1][-4:] == "date" and isinstance(sub_filter[2], str):
+			for ix, i in enumerate(sub_filter[2:]):
+				sub_filter[2+ix] = datetime(*[int(a) for a in i.split(",")])
+		if len(sub_filter) == 3:
+			sql_query = sql_query.filter(getattr(allowed_classes[sub_filter[0]], sub_filter[1]) == sub_filter[2])
+		else:
+			sql_query = sql_query.filter(or_(getattr(allowed_classes[sub_filter[0]], sub_filter[1]) == v for v in sub_filter[2:]))
 
 	mystring = sql_query.statement
 	reference_df = pd.read_sql_query(mystring,engine)
-	# print reference_df.index
-	print reference_df.columns
-	# print reference_df["Cage_id"]
-	# print reference_df[reference_df["Animal_id"]==43]
-	print reference_df
-
 	session.close()
 	engine.dispose()
+
+	return reference_df
+
+	#THIS IS KEPT TO REMEMBER WHENCE THE ABOVE AWKWARD ROUTINES CAME AND HOW THE CODE IS SUPPOSED TO LOOK IF TYPED OUT
+	# CageTreatment = aliased(Treatment)
+	# CageTreatmentProtocol = aliased(TreatmentProtocol)
+	# sql_query = session.query(
+	# 						Animal.id.label("Animal_id"),
+	# 						TreatmentProtocol.code.label("TreatmentProtocol_code"),
+	# 						Cage.id.label("Cage_id"),
+	# 						CageTreatment.id.label("Cage_Treatment_id"),
+	# 						CageTreatmentProtocol.code.label("Cage_TreatmentProtocol_code"),
+	# 						)\
+	# 				.join(Animal.treatments)\
+	# 				.join(Treatment.protocol)\
+	# 				.join(Animal.cage_stays)\
+	# 				.join(CageStay.cage)\
+	# 				.join(CageTreatment, Cage.treatments)\
+	# 				.join(CageTreatmentProtocol, CageTreatment.protocol)\
+	# 				.filter(Animal.id == 43)
+	# mystring = sql_query.statement
+	# reference_df = pd.read_sql_query(mystring,engine)
+	# print reference_df.columns
+	# print reference_df
 
 if __name__ == '__main__':
 	# select = [["Animal","treatments"],["FMRIMeasurement"],["TreatmentProtocol"]]
@@ -302,5 +347,9 @@ if __name__ == '__main__':
 		]
 	# multi_plot("~/syncdata/meta.db", select, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate, baseclass=baseclass, filters=filters)
 	# plt.show()
-	newtest("~/syncdata/meta.db")
+
+	col_entries=[("Animal","id"),("Treatment",),("FMRIMeasurement",),("TreatmentProtocol","code"),("Cage","id"),("Cage","Treatment",""),("Cage","TreatmentProtocol","code")]
+	join_entries=[("Animal.treatments",),("FMRIMeasurement",),("Treatment.protocol",),("Animal.cage_stays",),("CageStay.cage",),("Cage_Treatment","Cage.treatments"),("Cage_TreatmentProtocol","Cage_Treatment.protocol")]
+	filers = [["Cage_Treatment","start_date","2016,4,25"]]
+	get_referece_df("~/syncdata/meta.db",col_entries=col_entries, join_entries=join_entries, filters=filters)
 	# test("~/meta.db")
