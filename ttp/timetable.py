@@ -14,24 +14,6 @@ from os import path
 sys.path.append(path.expanduser('~/src/LabbookDB/db/'))
 from query import get_df
 
-# def tryme(joins, cols, expression):
-# 	joinclassobject = allowed_classes[expression[0]]
-# 	if isinstance(expression[2],list):
-# 		joins,cols,parentclassobject_,joinclassobject_,alias_,aliased_col_ = tryme(joins, cols, expression[2])
-# 		parentclassobject = alias_
-# 		rootclassname = expression[2][2]
-# 		joinclassobject_name = rootclassname+"_"+expression[0]
-# 	else:
-# 		parentclassobject = allowed_classes[expression[2]]
-# 		joinclassobject_name = expression[0]
-# 		rootclassname = expression[2]
-# 	alias = aliased(joinclassobject, name=joinclassobject_name)
-# 	joins.append((alias,getattr(parentclassobject, expression[1])))
-# 	for col_name, col in inspection.inspect(joinclassobject).columns.items():
-# 		aliased_col = getattr(joinclassobject, col.key)
-# 		cols.append(aliased_col.label("{}_{}_{}".format(rootclassname,expression[0],col_name)))
-# 	return joins,cols,parentclassobject,joinclassobject,alias,aliased_col
-
 def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="Pastel1_r", window_start="", window_end=""):
 	"""Plotting tool
 
