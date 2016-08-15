@@ -32,7 +32,7 @@ from query import get_df
 # 		cols.append(aliased_col.label("{}_{}_{}".format(rootclassname,expression[0],col_name)))
 # 	return joins,cols,parentclassobject,joinclassobject,alias,aliased_col
 
-def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="Pastel1_r"):
+def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="Pastel1_r", window_start="", window_end=""):
 	"""Plotting tool
 
 	Mandatory Arguments:
@@ -55,8 +55,17 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="P
 
 	#GET FIRST AND LAST DATE
 	dates = get_dates(reference_df, [shade, saturate])
-	window_start = min(dates) - timedelta(days=padding)
-	window_end = max(dates) + timedelta(days=padding)
+	if not window_start:
+		window_start = min(dates) - timedelta(days=padding)
+	else:
+		window_start = datetime.strptime(window_start, "%Y,%m,%d").date()
+	if not window_end:
+		window_end = max(dates) + timedelta(days=padding)
+	else:
+		window_end = datetime.strptime(window_end, "%Y,%m,%d").date()
+
+	# window_start = min(dates) - timedelta(days=padding)
+	# window_end = max(dates) + timedelta(days=padding)
 
 	#create generic plotting dataframe
 	x_vals = list(set(reference_df[x_key]))
@@ -67,7 +76,8 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="P
 
 	#set plotting params
 	cMap = add_grey(cm.viridis, 0.9)
-	fig, ax = plt.subplots(figsize=df.shape , facecolor='#eeeeee', tight_layout=True)
+	fig_shape = (df.shape[0],df.shape[1]/1.5) #1.5 seems like a good scaling value to make cells not-too-tall and not-too-short
+	fig, ax = plt.subplots(figsize=fig_shape , facecolor='#eeeeee', tight_layout=True)
 
 	#populate frames
 	df_ = df.copy(deep=True)
@@ -92,7 +102,11 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="P
 				filtered_df = reference_df[reference_df[x_key] == x_val]
 				active_dates = list(set(filtered_df[entry]))
 				for active_date in active_dates:
-					df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step+1)
+					#escaping dates which are outside the date range (e.g. when specifying tighter window_end and window_start contraints)
+					try:
+						df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step+1)
+					except KeyError:
+						pass
 	im = ax.pcolorfast(df_.T, cmap=add_grey(cm.gray_r, 0.8), alpha=.5)
 	plt.hold(True)
 
@@ -159,7 +173,6 @@ if __name__ == '__main__':
 	join_entries=[("Animal.treatments",),("FMRIMeasurement",),("Treatment.protocol",),("Animal.cage_stays",),("CageStay.cage",),("Cage_Treatment","Cage.treatments"),("Cage_TreatmentProtocol","Cage_Treatment.protocol")]
 	filters = [["Cage_Treatment","start_date","2016,4,25,19,30"]]
 	reference_df = get_df("~/syncdata/meta.db",col_entries=col_entries, join_entries=join_entries, filters=filters)
-	# print reference_df.columns
 
-	multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate)
+	multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate, window_end="2016,6,3")
 	plt.show()
