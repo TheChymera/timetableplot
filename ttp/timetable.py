@@ -163,9 +163,9 @@ if __name__ == '__main__':
 
 	col_entries=[("Animal","id"),("Treatment",),("FMRIMeasurement",),("TreatmentProtocol","code"),("Cage","id"),("Cage","Treatment",""),("Cage","TreatmentProtocol","code")]
 	join_entries=[("Animal.treatments",),("FMRIMeasurement",),("Treatment.protocol",),("Animal.cage_stays",),("CageStay.cage",),("Cage_Treatment","Cage.treatments"),("Cage_TreatmentProtocol","Cage_Treatment.protocol")]
-	# filters = [["Cage_Treatment","start_date","2016,5,19,23,5"]]
-	filters = [["Cage_Treatment","start_date","2016,4,25,19,30"]]
-	
+	filters = [["Cage_Treatment","start_date","2016,5,19,23,5"]]
+	# filters = [["Cage_Treatment","start_date","2016,4,25,19,30"]]
+
 	reference_df = get_df("~/syncdata/meta.db",col_entries=col_entries, join_entries=join_entries, filters=filters, outerjoin=True) # setting outerjoin to true will indirectly include controls
 
 	multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate)
