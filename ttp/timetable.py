@@ -95,13 +95,20 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="P
 					filtered_df = reference_df[(reference_df[key] == entry[key][0])&(reference_df[x_key] == x_val)]
 					try:
 						start = list(set(filtered_df[entry[key][1]]))[0]
+						try:
+							start = start.date()
+						except AttributeError:
+							pass
 					except IndexError:
 						pass
 					if len(entry[key]) == 3:
-						end = list(set(filtered_df[entry[key][2]]))[0]
-						active_dates = [i for i in perdelta(start,end+timedelta(days=1),timedelta(days=1))]
-						for active_date in active_dates:
-							df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step+1)
+						try:
+							end = list(set(filtered_df[entry[key][2]]))[0]
+							active_dates = [i for i in perdelta(start,end+timedelta(days=1),timedelta(days=1))]
+							for active_date in active_dates:
+								df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step+1)
+						except IndexError:
+							pass
 					elif start:
 						df_.set_value(start, x_val, df_.get_value(start, x_val)+c_step+1)
 					# we need this to make sure start does not remain set for the next iteration:
@@ -129,13 +136,21 @@ def get_dates(df, parameters):
 	for parameter in parameters:
 		for entry in parameter:
 			if isinstance(entry, str):
-				dates.extend(list(set(df[entry])))
+				notnull_df = df[pd.notnull(df[entry])]
+				dates.extend(list(set(notnull_df[entry])))
 			if isinstance(entry, dict):
 				for key in entry:
 					filtered_df = df[df[key] == entry[key][0]]
 					for col in entry[key][1:]:
 						dates.extend(list(set(filtered_df[col])))
-	return list(set(dates))
+	dates = list(set(dates))
+	checked_dates=[]
+	for dt in dates:
+		try:
+			checked_dates.append(dt.date())
+		except AttributeError:
+			checked_dates.append(dt)
+	return checked_dates
 
 if __name__ == '__main__':
 	saturate = [
@@ -146,8 +161,11 @@ if __name__ == '__main__':
 
 	col_entries=[("Animal","id"),("Treatment",),("FMRIMeasurement",),("TreatmentProtocol","code"),("Cage","id"),("Cage","Treatment",""),("Cage","TreatmentProtocol","code")]
 	join_entries=[("Animal.treatments",),("FMRIMeasurement",),("Treatment.protocol",),("Animal.cage_stays",),("CageStay.cage",),("Cage_Treatment","Cage.treatments"),("Cage_TreatmentProtocol","Cage_Treatment.protocol")]
-	filters = [["Cage_Treatment","start_date","2016,4,25,19,30"]]
-	reference_df = get_df("~/syncdata/meta.db",col_entries=col_entries, join_entries=join_entries, filters=filters)
+	filters = [["Cage_Treatment","start_date","2016,5,19,23,5"]]
+	# filters = [["Cage_Treatment","start_date","2016,4,25,19,30"]]
 
-	multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate, window_end="2016,6,3")
+	reference_df = get_df("~/syncdata/meta.db",col_entries=col_entries, join_entries=join_entries, filters=filters, outerjoin=True) # setting outerjoin to true will indirectly include controls
+
+	multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate)
+	# multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate, window_end="2016,6,3")
 	plt.show()
