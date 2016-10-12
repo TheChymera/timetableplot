@@ -10,8 +10,7 @@ from datetime import *
 from plotting import ttp_style, add_grey
 from os import path
 
-sys.path.append(path.expanduser('~/src/LabbookDB/db/'))
-from query import get_df
+from labbookdb.db.query import get_df
 
 def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="Pastel1_r", window_start="", window_end=""):
 	"""Plotting tool
