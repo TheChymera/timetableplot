@@ -36,7 +36,7 @@ def add_grey(cMap, blank_color):
 
 	return LinearSegmentedColormap("name", cdict)
 
-def ttp_style(ax, df_):
+def ttp_style(ax, df_, padding=0):
 	#place and null major ticks (we still need them for the grid)
 	ax.xaxis.set_major_locator(ticker.LinearLocator(len(df_.index)+1))
 	ax.xaxis.set_major_formatter(ticker.NullFormatter())
@@ -56,7 +56,7 @@ def ttp_style(ax, df_):
 	#Set only 7th minor tick label to visible
 	for label in ax.xaxis.get_minorticklabels():
 		label.set_visible(False)
-	for label in ax.xaxis.get_minorticklabels()[::7]:
+	for label in ax.xaxis.get_minorticklabels()[padding::7]:
 		label.set_visible(True)
 	for label in ax.yaxis.get_minorticklabels():
 		label.set_visible(False)

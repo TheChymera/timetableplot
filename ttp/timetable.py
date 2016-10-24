@@ -10,7 +10,7 @@ from datetime import *
 from plotting import ttp_style, add_grey
 from os import path
 
-def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="Pastel1_r", window_start="", window_end=""):
+def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="Pastel1_r", window_start="", window_end="", real_dates=True):
 	"""Plotting tool
 
 	Mandatory Arguments:
@@ -81,6 +81,8 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="P
 						df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step+1)
 					except KeyError:
 						pass
+	if not real_dates:
+		df_ = df_.set_index(np.arange(len(df_))-padding)
 	im = ax.pcolorfast(df_.T, cmap=add_grey(cm.gray_r, 0.8), alpha=.5)
 	plt.hold(True)
 
@@ -115,11 +117,16 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="P
 				filtered_df = reference_df[reference_df[x_key] == x_val]
 				active_dates = list(set(filtered_df[entry]))
 				df_.set_value(active_dates, x_val, 1)
+	if not real_dates:
+		df_ = df_.set_index(np.arange(len(df_))-padding)
 	im = ax.pcolorfast(df_.T, cmap=add_grey(getattr(cm,saturate_cmap), 0.9), alpha=.5)
 	plt.hold(True)
 
-	ax = ttp_style(ax, df_)
-
+	if real_dates:
+		ax = ttp_style(ax, df_)
+	else:
+		ax = ttp_style(ax, df_, padding)
+		plt.xlabel("Days")
 	plt.ylabel(" ".join(x_key.split("_")).replace("id","ID"))
 
 def perdelta(start, end, delta):

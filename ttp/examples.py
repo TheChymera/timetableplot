@@ -53,7 +53,7 @@ def ipcohort():
 	# setting outerjoin to true will indirectly include controls
 	reference_df = get_df("~/syncdata/meta.db",col_entries=col_entries, join_entries=join_entries, filters=filters, outerjoin=True)
 
-	timetable.multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate)
+	timetable.multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate, real_dates=False)
 	plt.show()
 
 if __name__ == '__main__':
