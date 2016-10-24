@@ -56,6 +56,6 @@ def ipcohort():
 	plt.show()
 
 if __name__ == '__main__':
-	# dwcohort1()
-	dwcohort2()
+	dwcohort1()
+	# dwcohort2()
 	# ipcohort()
