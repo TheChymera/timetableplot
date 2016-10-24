@@ -18,7 +18,7 @@ def dwcohort1():
 	# setting outerjoin to true will indirectly include controls
 	reference_df = get_df("~/syncdata/meta.db",col_entries=col_entries, join_entries=join_entries, filters=filters, outerjoin=True)
 
-	timetable.multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate)
+	timetable.multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate, window_end="2016,6,2")
 	# multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate, window_end="2016,6,3")
 	plt.show()
 
@@ -35,7 +35,6 @@ def dwcohort2():
 
 	# setting outerjoin to true will indirectly include controls
 	reference_df = get_df("~/syncdata/meta.db",col_entries=col_entries, join_entries=join_entries, filters=filters, outerjoin=True)
-	print(reference_df)
 
 	timetable.multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate)
 	plt.show()
@@ -58,5 +57,5 @@ def ipcohort():
 
 if __name__ == '__main__':
 	# dwcohort1()
-	# dwcohort2()
-	ipcohort()
+	dwcohort2()
+	# ipcohort()

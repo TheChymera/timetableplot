@@ -5,10 +5,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-
 from datetime import *
-from plotting import ttp_style, add_grey
 from os import path
+from matplotlib.colors import ListedColormap
+
+from plotting import ttp_style, add_grey
 
 def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="Pastel1_r", window_start="", window_end="", real_dates=True):
 	"""Plotting tool
@@ -119,7 +120,7 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="P
 				df_.set_value(active_dates, x_val, 1)
 	if not real_dates:
 		df_ = df_.set_index(np.arange(len(df_))-padding)
-	im = ax.pcolorfast(df_.T, cmap=add_grey(getattr(cm,saturate_cmap), 0.9), alpha=.5)
+	im = ax.pcolorfast(df_.T, cmap=ListedColormap(["0.9","#fff3a3","#a3e0ff","#ffa3ed","#ffa3a3"]), alpha=.4, vmin=0, vmax=4)
 	plt.hold(True)
 
 	if real_dates:
