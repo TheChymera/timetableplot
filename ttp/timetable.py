@@ -5,23 +5,44 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-
 from datetime import *
-from plotting import ttp_style, add_grey
 from os import path
+from matplotlib.colors import ListedColormap
 
-sys.path.append(path.expanduser('~/src/LabbookDB/labbookdb/db/'))
-from query import get_df
+from plotting import ttp_style, add_grey
 
-def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="Pastel1_r", window_start="", window_end=""):
-	"""Plotting tool
+def multi_plot(reference_df, x_key, shade, saturate, padding=3, colorlist=["0.9","#fff3a3","#a3e0ff","#ffa3ed","#ffa3a3"], window_start="", window_end="", real_dates=True):
+	"""Plot a timetable
 
-	Mandatory Arguments:
-	db_path -- path of db to query for data (can use tilde for home dir)
-	category -- main category to plot on x axis (must be a class from the db)
-	select -- list of lists which must be either 2 (for join) or 3 (for filter) elements long
-	padding -- number of entries to padd timeplan with
-	saturate_cmap -- string indicating the matplotlib cmap to use (http://matplotlib.org/examples/color/colormaps_reference.html)
+	Parameters
+	----------
+
+	reference_df : Pandas DataFrame
+	Dataframe containing the data to plot. It needs to contain columns with datetime values.
+
+	x_key : string
+	Column from `reference_df` for the values in which to create rows in the timetable.
+
+	shade: string or dictionary
+	If a string, it specifies the columns for which to shade the datetimes. If a dictionary, the key gives a column to filter by; and if the first item in the value list matches the column value, the datetime in the second item in the value list will specify which datetimes to shade; if the value list contains three items, the datetimes in between that in the second item column and the third item column will be shaded.
+
+	saturate: string or dictionary
+	If a string, it specifies the columns for which to saturate the datetimes. If a dictionary, the key gives a column to filter by; and if the first item in the value list matches the column value, the datetime in the second item in the value list will specify which datetimes to saturate; if the value list contains three items, the datetimes in between that in the second item column and the third item column will be shaded.
+
+	padding : int
+	Number of days to bad the timetable window with (before and after the first and last scan respectively).
+
+	colorlist : list
+	A list containing matplotlib-compatible colors to be used for shading.
+
+	window_start : string
+	A datetime-formatted string (e.g. "2016,12,18") to apply as the timetable start date (overrides autodetected start).
+
+	window_end : string
+	A datetime-formatted string (e.g. "2016,12,18") to apply as the timetable end date (overrides autodetected end).
+
+	real_dates : boolean
+	Set to False to display dates relative to the first measurement.
 	"""
 
 	#truncate dates
@@ -43,7 +64,6 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="P
 		window_end = max(dates) + timedelta(days=padding)
 	else:
 		window_end = datetime.strptime(window_end, "%Y,%m,%d").date()
-		print window_end
 
 	#create generic plotting dataframe
 	x_vals = list(set(reference_df[x_key]))
@@ -60,6 +80,7 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="P
 	#populate frames
 	df_ = df.copy(deep=True)
 	for c_step, entry in enumerate(shade):
+		c_step += 1
 		for x_val in x_vals:
 			if isinstance(entry, dict):
 				for key in entry:
@@ -73,24 +94,27 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="P
 						end = list(set(filtered_df[entry[key][2]]))[0]
 						active_dates = [i for i in perdelta(start,end+timedelta(days=1),timedelta(days=1))]
 						for active_date in active_dates:
-							df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step+1)
+							df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step)
 					elif start:
-						df_.set_value(start, x_val, df_.get_value(start, x_val)+c_step+1)
+						df_.set_value(start, x_val, df_.get_value(start, x_val)+c_step)
 			elif isinstance(entry, str):
 				filtered_df = reference_df[reference_df[x_key] == x_val]
 				active_dates = list(set(filtered_df[entry]))
 				for active_date in active_dates:
 					#escaping dates which are outside the date range (e.g. when specifying tighter window_end and window_start contraints)
 					try:
-						df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step+1)
+						df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step)
 					except KeyError:
 						pass
+	if not real_dates:
+		df_ = df_.set_index(np.arange(len(df_))-padding)
 	im = ax.pcolorfast(df_.T, cmap=add_grey(cm.gray_r, 0.8), alpha=.5)
 	plt.hold(True)
 
 	#populate frames
 	df_ = df.copy(deep=True)
 	for c_step, entry in enumerate(saturate):
+		c_step += 1
 		for x_val in x_vals:
 			if isinstance(entry, dict):
 				for key in entry:
@@ -108,22 +132,27 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=4, saturate_cmap="P
 							end = list(set(filtered_df[entry[key][2]]))[0]
 							active_dates = [i for i in perdelta(start,end+timedelta(days=1),timedelta(days=1))]
 							for active_date in active_dates:
-								df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step+1)
+								df_.set_value(active_date, x_val, df_.get_value(active_date, x_val)+c_step)
 						except IndexError:
 							pass
 					elif start:
-						df_.set_value(start, x_val, df_.get_value(start, x_val)+c_step+1)
+						df_.set_value(start, x_val, df_.get_value(start, x_val)+c_step)
 					# we need this to make sure start does not remain set for the next iteration:
 					start=False
 			elif isinstance(entry, str):
 				filtered_df = reference_df[reference_df[x_key] == x_val]
 				active_dates = list(set(filtered_df[entry]))
 				df_.set_value(active_dates, x_val, 1)
-	im = ax.pcolorfast(df_.T, cmap=add_grey(getattr(cm,saturate_cmap), 0.9), alpha=.5)
+	if not real_dates:
+		df_ = df_.set_index(np.arange(len(df_))-padding)
+	im = ax.pcolorfast(df_.T, cmap=ListedColormap(colorlist), vmin=0, vmax=len(colorlist)-1, alpha=.5)
 	plt.hold(True)
 
-	ax = ttp_style(ax, df_)
-
+	if real_dates:
+		ax = ttp_style(ax, df_)
+	else:
+		ax = ttp_style(ax, df_, padding)
+		plt.xlabel("Days")
 	plt.ylabel(" ".join(x_key.split("_")).replace("id","ID"))
 
 def perdelta(start, end, delta):
