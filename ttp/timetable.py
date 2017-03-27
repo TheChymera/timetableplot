@@ -153,21 +153,3 @@ def get_dates(df, parameters):
 		except AttributeError:
 			checked_dates.append(dt)
 	return checked_dates
-
-if __name__ == '__main__':
-	saturate = [
-		{"Cage_TreatmentProtocol_code":["cFluDW","Cage_Treatment_start_date","Cage_Treatment_end_date"]},
-		{"TreatmentProtocol_code":["aFluIV","Treatment_start_date"]},
-		{"TreatmentProtocol_code":["aFluSC","Treatment_start_date"]}
-		]
-
-	col_entries=[("Animal","id"),("Treatment",),("FMRIMeasurement",),("TreatmentProtocol","code"),("Cage","id"),("Cage","Treatment",""),("Cage","TreatmentProtocol","code")]
-	join_entries=[("Animal.treatments",),("FMRIMeasurement",),("Treatment.protocol",),("Animal.cage_stays",),("CageStay.cage",),("Cage_Treatment","Cage.treatments"),("Cage_TreatmentProtocol","Cage_Treatment.protocol")]
-	filters = [["Cage_Treatment","start_date","2016,5,19,23,5"]]
-	# filters = [["Cage_Treatment","start_date","2016,4,25,19,30"]]
-
-	reference_df = get_df("~/syncdata/meta.db",col_entries=col_entries, join_entries=join_entries, filters=filters, outerjoin=True) # setting outerjoin to true will indirectly include controls
-
-	multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate)
-	# multi_plot(reference_df, "Animal_id", shade=["FMRIMeasurement_date"], saturate=saturate, window_end="2016,6,3")
-	plt.show()
