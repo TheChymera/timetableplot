@@ -1,4 +1,11 @@
-#timetableplot
+# DEPRECATION NOTICE
+
+This package is now deprecated, and will not be actively maintained.
+
+* Timetable plotting is now provided by the nicer, more stable, and more comprehensive [**behaviopy**](https://github.com/TheChymera/behaviopy).
+* Database querying functionalities formerly available in timetableplot are now integrated in [**LabbookDB**](https://github.com/TheChymera/LabbookDB).
+
+# timetableplot
 
 Timetableplot is a utility that lets you create timetable overview figures.
 
