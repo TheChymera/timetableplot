@@ -11,7 +11,14 @@ from matplotlib.colors import ListedColormap
 
 from plotting import ttp_style, add_grey
 
-def multi_plot(reference_df, x_key, shade, saturate, padding=3, colorlist=["0.9","#fff3a3","#a3e0ff","#ffa3ed","#ffa3a3"], window_start="", window_end="", real_dates=True):
+def multi_plot(reference_df, x_key, shade, saturate,
+	colorlist=["0.9","#fff3a3","#a3e0ff","#ffa3ed","#ffa3a3"],
+	padding=3,
+	real_dates=True,
+	window_start="",
+	window_end="",
+	save_plot=""
+	):
 	"""Plot a timetable
 
 	Parameters
@@ -29,20 +36,20 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=3, colorlist=["0.9"
 	saturate: {list of str, list of dict}
 	Strings specify the columns for which to saturate the datetimes. In dictionaries, the key gives a column to filter by; and if the first item in the value list matches the column value, the datetime in the second item in the value list will specify which datetimes to saturate; if the value list contains three items, the datetimes in between that in the second item column and the third item column will be shaded.
 
+	colorlist : list
+	A list containing matplotlib-compatible colors to be used for shading.
+
 	padding : int
 	Number of days to bad the timetable window with (before and after the first and last scan respectively).
 
-	colorlist : list
-	A list containing matplotlib-compatible colors to be used for shading.
+	real_dates : boolean
+	Set to False to display dates relative to the first measurement.
 
 	window_start : string
 	A datetime-formatted string (e.g. "2016,12,18") to apply as the timetable start date (overrides autodetected start).
 
 	window_end : string
 	A datetime-formatted string (e.g. "2016,12,18") to apply as the timetable end date (overrides autodetected end).
-
-	real_dates : boolean
-	Set to False to display dates relative to the first measurement.
 	"""
 
 	#truncate dates
@@ -154,6 +161,9 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=3, colorlist=["0.9"
 		ax = ttp_style(ax, df_, padding)
 		plt.xlabel("Days")
 	plt.ylabel(" ".join(x_key.split("_")).replace("id","ID"))
+
+	if save_plot:
+		plt.savefig(path.abspath(path.expanduser(save_plot)), bbox_inches='tight')
 
 def perdelta(start, end, delta):
 	curr = start
