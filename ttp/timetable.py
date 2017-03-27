@@ -23,11 +23,11 @@ def multi_plot(reference_df, x_key, shade, saturate, padding=3, colorlist=["0.9"
 	x_key : string
 	Column from `reference_df` for the values in which to create rows in the timetable.
 
-	shade: string or dictionary
-	If a string, it specifies the columns for which to shade the datetimes. If a dictionary, the key gives a column to filter by; and if the first item in the value list matches the column value, the datetime in the second item in the value list will specify which datetimes to shade; if the value list contains three items, the datetimes in between that in the second item column and the third item column will be shaded.
+	shade: {list of str, list of dict}
+	Strings specify the columns for which to shade the datetimes. In dictionaries, the key gives a column to filter by; and if the first item in the value list matches the column value, the datetime in the second item in the value list will specify which datetimes to shade; if the value list contains three items, the datetimes in between that in the second item column and the third item column will be shaded.
 
-	saturate: string or dictionary
-	If a string, it specifies the columns for which to saturate the datetimes. If a dictionary, the key gives a column to filter by; and if the first item in the value list matches the column value, the datetime in the second item in the value list will specify which datetimes to saturate; if the value list contains three items, the datetimes in between that in the second item column and the third item column will be shaded.
+	saturate: {list of str, list of dict}
+	Strings specify the columns for which to saturate the datetimes. In dictionaries, the key gives a column to filter by; and if the first item in the value list matches the column value, the datetime in the second item in the value list will specify which datetimes to saturate; if the value list contains three items, the datetimes in between that in the second item column and the third item column will be shaded.
 
 	padding : int
 	Number of days to bad the timetable window with (before and after the first and last scan respectively).
